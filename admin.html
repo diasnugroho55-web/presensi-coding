@@ -3,129 +3,181 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Admin - Presensi Ekstra Coding Mr.Dias</title>
+  <title>Kelas Coding Mr. Dias - Dashboard Admin</title>
 
-  <!-- 1. Tailwind CSS -->
+  <!-- 1. Font & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- 2. Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
 
-  <!-- 2. Library Firebase -->
+  <!-- 3. Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
-  <!-- 3. Library QR Code -->
+  <!-- 4. QR Code & Excel Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-  <!-- 4. Library Export Excel (SheetJS) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen p-4 md:p-8">
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
 
-  <div class="max-w-6xl mx-auto space-y-6">
+  <!-- Background Light Effects -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+    <div class="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl"></div>
+    <div class="absolute top-1/3 -right-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl"></div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
     
-    <!-- Header Admin -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900">Dashboard Admin Presensi Mr.Dias</h1>
-        <p class="text-sm text-slate-500">Kelola sesi pertemuan dan pantau kehadiran siswa Ekstra Coding</p>
+    <!-- Top Bar Navigation / Header -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-800/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-700/50 shadow-2xl">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-blue-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white">Kelas Coding Mr. Dias</h1>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>
+              Live Dashboard
+            </span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Sistem Manajemen & Monitor Kehadiran Siswa Realtime</p>
+        </div>
       </div>
 
       <div class="flex items-center gap-3">
-        <button id="btnBukaSesi" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-semibold rounded-xl shadow-md transition-all flex items-center gap-2 text-sm">
+        <button id="btnBukaSesi" class="w-full md:w-auto px-5 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 active:scale-95 text-white text-sm font-semibold rounded-2xl shadow-lg shadow-indigo-500/20 transition-all duration-200 flex items-center justify-center gap-2">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
           </svg>
-          Buka Pertemuan Baru
+          Buka Sesi Baru
         </button>
       </div>
-    </div>
+    </header>
 
-    <!-- Filter & Statistik Bar -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-      <!-- Pemilih Tanggal -->
-      <div class="flex items-center gap-3 w-full md:w-auto">
-        <label for="filterTanggal" class="text-xs font-semibold text-slate-600 whitespace-nowrap">Filter Tanggal:</label>
-        <input type="date" id="filterTanggal" class="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-2 px-3">
-        <button onclick="resetFilterTanggal()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs rounded-xl transition-all">
-          Semua Tanggal
-        </button>
-      </div>
-
-      <!-- Ringkasan Jumlah Siswa -->
-      <div class="flex items-center gap-3 w-full md:w-auto justify-end">
-        <div class="bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-xl text-center">
-          <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-500 block">Tampil (Filtered)</span>
-          <span id="jumlahSiswaFiltered" class="text-base font-bold text-indigo-700">0 Siswa</span>
-        </div>
-        <div class="bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl text-center">
-          <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">Total Seluruh</span>
-          <span id="jumlahSiswaTotal" class="text-base font-bold text-slate-700">0 Siswa</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Layout Utama: QR Code & Tabel Data -->
+    <!-- Controls Bar & Summary Cards -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
-      <!-- Kartu QR Code Sesi Aktif -->
-      <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col items-center justify-center text-center space-y-4">
-        <div class="space-y-1">
-          <h2 class="text-lg font-bold text-slate-900">QR Code Presensi</h2>
-          <p class="text-xs text-slate-500">Tampilkan QR Code ini kepada siswa untuk di-scan</p>
+      <!-- Filter Bar Card -->
+      <div class="bg-slate-800/40 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50 flex flex-col justify-between gap-4">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Filter Data Presensi</span>
+        <div class="flex items-center gap-3">
+          <div class="relative flex-1">
+            <input type="date" id="filterTanggal" class="w-full bg-slate-900/80 border border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 px-3 transition-all outline-none">
+          </div>
+          <button onclick="resetFilterTanggal()" class="px-4 py-2.5 bg-slate-700/60 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-xl border border-slate-600/50 transition-all whitespace-nowrap">
+            Semua
+          </button>
+        </div>
+      </div>
+
+      <!-- Stat Card 1: Filtered Count -->
+      <div class="bg-slate-800/40 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tampil (Filtered)</p>
+          <h3 id="jumlahSiswaFiltered" class="text-3xl font-bold text-indigo-400 mt-1">0 <span class="text-sm font-normal text-slate-400">Siswa</span></h3>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.447.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"></path>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Stat Card 2: Total Count -->
+      <div class="bg-slate-800/40 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Terdaftar</p>
+          <h3 id="jumlahSiswaTotal" class="text-3xl font-bold text-slate-100 mt-1">0 <span class="text-sm font-normal text-slate-400">Siswa</span></h3>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-slate-700/50 border border-slate-600/50 flex items-center justify-center text-slate-300">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Main Section: QR Code & Data Table -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Panel Left: QR Code -->
+      <div class="bg-slate-800/40 backdrop-blur-md p-6 rounded-3xl border border-slate-700/50 flex flex-col items-center justify-between text-center space-y-6">
+        <div>
+          <h2 class="text-lg font-bold text-white">QR Code Presensi</h2>
+          <p class="text-xs text-slate-400 mt-1">Siswa dapat memindai QR ini untuk konfirmasi kehadiran</p>
         </div>
 
         <!-- Wadah QR Code -->
-        <div id="qrcode" class="p-3 bg-white border border-slate-200 rounded-xl shadow-inner flex items-center justify-center min-h-[200px] min-w-[200px]">
-          <span class="text-xs text-slate-400">Belum ada sesi aktif</span>
+        <div class="p-4 bg-white rounded-2xl shadow-2xl flex items-center justify-center border border-slate-200">
+          <div id="qrcode" class="flex items-center justify-center min-h-[180px] min-w-[180px]">
+            <span class="text-xs text-slate-400">Belum Ada Sesi Aktif</span>
+          </div>
         </div>
 
-        <div id="infoSesi" class="text-xs bg-slate-100 px-3 py-1.5 rounded-lg text-slate-600 font-mono hidden">
-          Sesi: <span id="textSessionId" class="font-bold text-indigo-600"></span>
+        <div id="infoSesi" class="text-xs bg-slate-900/80 px-4 py-2 rounded-xl text-slate-300 font-mono border border-slate-700/60 hidden">
+          ID Sesi: <span id="textSessionId" class="font-bold text-indigo-400"></span>
         </div>
 
-        <!-- Tombol Perbesar QR Code -->
-        <button id="btnZoomQR" onclick="bukaModalQR()" class="hidden w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-semibold text-xs rounded-xl border border-slate-200 transition-all flex items-center justify-center gap-2">
-          <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button id="btnZoomQR" onclick="bukaModalQR()" class="hidden w-full py-3 px-4 bg-slate-700/50 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-2xl border border-slate-600/50 transition-all flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"></path>
           </svg>
-          Perbesar QR Code
+          Layar Penuh QR
         </button>
       </div>
 
-      <!-- Tabel Daftar Hadir Siswa -->
-      <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 flex flex-col">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h2 class="text-lg font-bold text-slate-900">Daftar Kehadiran Siswa</h2>
+      <!-- Panel Right: Table Data -->
+      <div class="lg:col-span-2 bg-slate-800/40 backdrop-blur-md p-6 rounded-3xl border border-slate-700/50 space-y-5 flex flex-col">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-white">Daftar Kehadiran Siswa</h2>
+            <p class="text-xs text-slate-400">Data terorganisir dan diperbarui secara otomatis</p>
+          </div>
 
-          <!-- Tombol Ekspor Excel -->
-          <button onclick="eksporKeExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-medium text-xs rounded-xl shadow transition-all duration-150 flex items-center justify-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <button onclick="eksporKeExcel()" class="px-4 py-2.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-2">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Ekspor Excel
+            Unduh Laporan Excel
           </button>
         </div>
 
-        <!-- Tabel Responsive -->
-        <div class="overflow-x-auto flex-1">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-slate-50 text-slate-600 uppercase text-[11px] font-semibold tracking-wider border-b border-slate-200">
+        <!-- Custom Styled Table -->
+        <div class="overflow-x-auto flex-1 rounded-2xl border border-slate-700/60">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-900/60 text-slate-400 uppercase text-[11px] font-semibold tracking-wider border-b border-slate-700/60">
               <tr>
-                <th class="py-3 px-4">No</th>
-                <th class="py-3 px-4">Nama Siswa</th>
-                <th class="py-3 px-4">Kelas</th>
-                <th class="py-3 px-4">No. Absen</th>
-                <th class="py-3 px-4">Waktu Presensi</th>
-                <th class="py-3 px-4 text-center">Aksi</th>
+                <th class="py-3.5 px-4">No</th>
+                <th class="py-3.5 px-4">Nama Siswa</th>
+                <th class="py-3.5 px-4">Kelas</th>
+                <th class="py-3.5 px-4">No. Absen</th>
+                <th class="py-3.5 px-4">Waktu Presensi</th>
+                <th class="py-3.5 px-4 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody id="tabelPresensi" class="divide-y divide-slate-100">
+            <tbody id="tabelPresensi" class="divide-y divide-slate-700/40 bg-slate-900/20">
               <tr>
-                <td colspan="6" class="text-center py-8 text-slate-400 text-xs">
-                  Belum ada data presensi yang masuk.
+                <td colspan="6" class="text-center py-12 text-slate-500 text-xs">
+                  Belum ada data presensi yang ditemukan.
                 </td>
               </tr>
             </tbody>
@@ -137,32 +189,34 @@
 
   </div>
 
-  <!-- Modal Pop-up QR Code Ukuran Besar -->
-  <div id="modalQR" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl relative border border-slate-100">
-      <button onclick="tutupModalQR()" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-all">
+  <!-- Modal Screen Zoom QR -->
+  <div id="modalQR" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 rounded-3xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl relative border border-slate-800">
+      <button onclick="tutupModalQR()" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-all">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>
       </button>
 
       <div>
-        <h3 class="text-xl font-bold text-slate-900">Scan QR Code Presensi</h3>
-        <p class="text-xs text-slate-500 mt-1">Arahkan kamera HP Anda ke QR Code di bawah ini</p>
+        <h3 class="text-xl font-bold text-white">Scan QR Code Presensi</h3>
+        <p class="text-xs text-slate-400 mt-1">Arahkan kamera ke layar untuk memindai presensi</p>
       </div>
 
-      <div id="qrcodeBig" class="p-4 bg-white border-2 border-indigo-100 rounded-2xl shadow-inner inline-block mx-auto"></div>
+      <div class="p-4 bg-white rounded-2xl shadow-inner inline-block mx-auto border border-slate-200">
+        <div id="qrcodeBig"></div>
+      </div>
 
-      <div class="pt-2">
-        <button onclick="tutupModalQR()" class="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm rounded-xl transition-all">
-          Tutup Layar
+      <div>
+        <button onclick="tutupModalQR()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm rounded-xl transition-all">
+          Tutup
         </button>
       </div>
     </div>
   </div>
 
+  <!-- Script Logic Firebase & UI -->
   <script>
-    // Konfigurasi Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyBc3HdLkjHNW5ugDVNtFJktXteK6fCYCGE",
       authDomain: "presensi-coding-7f2bd.firebaseapp.com",
@@ -181,11 +235,10 @@
     let dataMasterPresensi = [];
     let dataFilteredExcel = [];
 
-    // Set Default Tanggal Input ke Hari Ini
+    // Set Default Input Tanggal Ke Hari Ini
     const todayStr = new Date().toISOString().split('T')[0];
     document.getElementById("filterTanggal").value = todayStr;
 
-    // Listener Event saat Tanggal Diubah
     document.getElementById("filterTanggal").addEventListener("change", renderTabelPresensi);
 
     function resetFilterTanggal() {
@@ -193,7 +246,7 @@
       renderTabelPresensi();
     }
 
-    // Fungsi Membuat / Membuka Sesi Baru
+    // Fungsi Membuat Sesi Baru
     document.getElementById("btnBukaSesi").addEventListener("click", function() {
       const idSesiBaru = "SESI_" + Date.now();
 
@@ -206,7 +259,7 @@
       });
     });
 
-    // Fungsi Menampilkan QR Code
+    // Fungsi Menampilkan QR
     function tampilkanQR(sessionId) {
       const qrcodeContainer = document.getElementById("qrcode");
       qrcodeContainer.innerHTML = "";
@@ -217,7 +270,7 @@
         text: currentLinkSiswa,
         width: 180,
         height: 180,
-        colorDark : "#1e293b",
+        colorDark : "#0f172a",
         colorLight : "#ffffff",
         correctLevel : QRCode.CorrectLevel.H
       });
@@ -227,7 +280,7 @@
       document.getElementById("textSessionId").innerText = sessionId;
     }
 
-    // Memuat Sesi Terakhir yang Aktif saat Halaman Dimuat
+    // Load Sesi Terakhir
     db.collection("sistem").doc("sesiAktif").get().then((doc) => {
       if (doc.exists) {
         const activeSessionId = doc.data().sessionId;
@@ -236,16 +289,16 @@
       muatDataPresensi();
     });
 
-    // Modal QR Zoom
+    // Modal Zoom Functions
     function bukaModalQR() {
       if (!currentLinkSiswa) return;
       const containerBig = document.getElementById("qrcodeBig");
       containerBig.innerHTML = "";
       new QRCode(containerBig, {
         text: currentLinkSiswa,
-        width: 300,
-        height: 300,
-        colorDark : "#1e293b",
+        width: 280,
+        height: 280,
+        colorDark : "#0f172a",
         colorLight : "#ffffff",
         correctLevel : QRCode.CorrectLevel.H
       });
@@ -256,7 +309,7 @@
       document.getElementById("modalQR").classList.add("hidden");
     }
 
-    // Memuat Seluruh Data Presensi Realtime dari Firestore
+    // Realtime Listener Data Presensi
     function muatDataPresensi() {
       if (unsubscribePresensi) unsubscribePresensi();
 
@@ -275,10 +328,10 @@
         });
     }
 
-    // Render Tabel & Terapkan Filter Tanggal
+    // Render Data Tabel & Filter
     function renderTabelPresensi() {
       const tbody = document.getElementById("tabelPresensi");
-      const selectedDate = document.getElementById("filterTanggal").value; // Format: YYYY-MM-DD
+      const selectedDate = document.getElementById("filterTanggal").value;
       
       tbody.innerHTML = "";
       dataFilteredExcel = [];
@@ -287,7 +340,6 @@
       let countFiltered = 0;
       let no = 1;
 
-      // Urutkan data dari yang terbaru
       const dataSorted = [...dataMasterPresensi].sort((a, b) => {
         const tA = a.waktu ? a.waktu.toDate().getTime() : 0;
         const tB = b.waktu ? b.waktu.toDate().getTime() : 0;
@@ -300,7 +352,6 @@
         let waktuFormatted = "-";
 
         if (dateObj) {
-          // Format YYYY-MM-DD untuk pencocokan filter
           const year = dateObj.getFullYear();
           const month = String(dateObj.getMonth() + 1).padStart(2, '0');
           const day = String(dateObj.getDate()).padStart(2, '0');
@@ -309,11 +360,9 @@
           waktuFormatted = `${tglFormatted} ${dateObj.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })} WIB`;
         }
 
-        // Cek Filter Tanggal
         if (!selectedDate || selectedDate === tglFormatted) {
           countFiltered++;
 
-          // Simpan Data untuk Ekspor Excel
           dataFilteredExcel.push({
             "No": no,
             "Tanggal & Waktu": waktuFormatted,
@@ -323,16 +372,18 @@
           });
 
           const tr = document.createElement("tr");
-          tr.className = "hover:bg-slate-50 transition-colors";
+          tr.className = "hover:bg-slate-800/40 transition-colors border-b border-slate-800/50";
           tr.innerHTML = `
-            <td class="py-3 px-4 font-medium text-slate-600">${no++}</td>
-            <td class="py-3 px-4 font-semibold text-slate-900">${item.nama}</td>
-            <td class="py-3 px-4 text-slate-600">${item.kelas}</td>
-            <td class="py-3 px-4 text-slate-600">${item.noAbsen}</td>
-            <td class="py-3 px-4 text-slate-500 text-xs">${waktuFormatted}</td>
-            <td class="py-3 px-4 text-center">
-              <button onclick="hapusPresensi('${item.docId}', '${item.nama}')" class="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-all" title="Hapus Data">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <td class="py-3.5 px-4 font-mono text-slate-400 text-xs">${no++}</td>
+            <td class="py-3.5 px-4 font-medium text-white">${item.nama}</td>
+            <td class="py-3.5 px-4">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">${item.kelas}</span>
+            </td>
+            <td class="py-3.5 px-4 text-slate-400">${item.noAbsen}</td>
+            <td class="py-3.5 px-4 text-slate-400 text-xs">${waktuFormatted}</td>
+            <td class="py-3.5 px-4 text-center">
+              <button onclick="hapusPresensi('${item.docId}', '${item.nama}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all" title="Hapus Data">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                 </svg>
               </button>
@@ -342,36 +393,35 @@
         }
       });
 
-      // Update Angka Statistik
-      document.getElementById("jumlahSiswaFiltered").innerText = `${countFiltered} Siswa`;
-      document.getElementById("jumlahSiswaTotal").innerText = `${totalSiswa} Siswa`;
+      document.getElementById("jumlahSiswaFiltered").innerText = countFiltered;
+      document.getElementById("jumlahSiswaTotal").innerText = totalSiswa;
 
       if (countFiltered === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="6" class="text-center py-8 text-slate-400 text-xs">
-              Tidak ada data presensi pada tanggal/kriteria ini.
+            <td colspan="6" class="text-center py-12 text-slate-500 text-xs">
+              Tidak ada data presensi pada kriteria filter ini.
             </td>
           </tr>
         `;
       }
     }
 
-    // Fungsi Hapus Data Presensi
+    // Fungsi Hapus
     function hapusPresensi(id, nama) {
       if (confirm(`Apakah Anda yakin ingin menghapus data presensi untuk "${nama}"?`)) {
         db.collection("presensi").doc(id).delete().then(() => {
-          console.log("Data berhasil dihapus.");
+          console.log("Data terhapus");
         }).catch((error) => {
           alert("Gagal menghapus data: " + error.message);
         });
       }
     }
 
-    // Fungsi Ekspor Data ke File Excel
+    // Fungsi Ekspor Excel
     function eksporKeExcel() {
       if (dataFilteredExcel.length === 0) {
-        alert("Tidak ada data presensi yang sesuai untuk diekspor!");
+        alert("Tidak ada data presensi untuk diekspor!");
         return;
       }
 
@@ -380,7 +430,7 @@
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Presensi");
 
-      XLSX.writeFile(workbook, `Data_Presensi_${selectedDate}.xlsx`);
+      XLSX.writeFile(workbook, `Presensi_Coding_${selectedDate}.xlsx`);
     }
   </script>
 </body>
