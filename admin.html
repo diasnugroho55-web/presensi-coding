@@ -61,6 +61,14 @@
         <div id="infoSesi" class="text-xs bg-slate-100 px-3 py-1.5 rounded-lg text-slate-600 font-mono hidden">
           Sesi: <span id="textSessionId" class="font-bold text-indigo-600"></span>
         </div>
+
+        <!-- Tombol Perbesar QR Code -->
+        <button id="btnZoomQR" onclick="bukaModalQR()" class="hidden w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-semibold text-xs rounded-xl border border-slate-200 transition-all flex items-center justify-center gap-2">
+          <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"></path>
+          </svg>
+          Perbesar QR Code
+        </button>
       </div>
 
       <!-- Tabel Daftar Hadir Siswa -->
@@ -110,6 +118,33 @@
 
   </div>
 
+  <!-- Modal Pop-up QR Code Ukuran Besar -->
+  <div id="modalQR" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl relative border border-slate-100">
+      
+      <!-- Tombol Close Modal -->
+      <button onclick="tutupModalQR()" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-all">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+
+      <div>
+        <h3 class="text-xl font-bold text-slate-900">Scan QR Code Presensi</h3>
+        <p class="text-xs text-slate-500 mt-1">Arahkan kamera HP Anda ke QR Code di bawah ini</p>
+      </div>
+
+      <!-- Wadah QR Code Besar -->
+      <div id="qrcodeBig" class="p-4 bg-white border-2 border-indigo-100 rounded-2xl shadow-inner inline-block mx-auto"></div>
+
+      <div class="pt-2">
+        <button onclick="tutupModalQR()" class="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm rounded-xl transition-all">
+          Tutup Layar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Konfigurasi Firebase
     const firebaseConfig = {
@@ -125,6 +160,8 @@
     const db = firebase.firestore();
 
     let qrCodeObj = null;
+    let qrCodeBigObj = null;
+    let currentLinkSiswa = "";
     let unsubscribePresensi = null;
     let dataPresensiSiswa = [];
 
@@ -146,10 +183,10 @@
       const qrcodeContainer = document.getElementById("qrcode");
       qrcodeContainer.innerHTML = "";
 
-      const linkSiswa = window.location.href.replace("admin.html", "siswa.html") + "?session=" + sessionId;
+      currentLinkSiswa = window.location.href.replace("admin.html", "siswa.html") + "?session=" + sessionId;
 
       qrCodeObj = new QRCode(qrcodeContainer, {
-        text: linkSiswa,
+        text: currentLinkSiswa,
         width: 180,
         height: 180,
         colorDark : "#1e293b",
@@ -158,6 +195,7 @@
       });
 
       document.getElementById("infoSesi").classList.remove("hidden");
+      document.getElementById("btnZoomQR").classList.remove("hidden");
       document.getElementById("textSessionId").innerText = sessionId;
     }
 
@@ -169,6 +207,29 @@
         muatDataPresensi(activeSessionId);
       }
     });
+
+    // Fungsi Pop-up Perbesar QR Code
+    function bukaModalQR() {
+      if (!currentLinkSiswa) return;
+
+      const containerBig = document.getElementById("qrcodeBig");
+      containerBig.innerHTML = "";
+
+      qrCodeBigObj = new QRCode(containerBig, {
+        text: currentLinkSiswa,
+        width: 300,
+        height: 300,
+        colorDark : "#1e293b",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+      });
+
+      document.getElementById("modalQR").classList.remove("hidden");
+    }
+
+    function tutupModalQR() {
+      document.getElementById("modalQR").classList.add("hidden");
+    }
 
     // Memuat Data Presensi Realtime dari Firestore
     function muatDataPresensi(sessionId) {
