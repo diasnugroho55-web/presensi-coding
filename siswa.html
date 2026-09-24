@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presensi Ekstra Coding</title>
+
+  <!-- 1. Tailwind CSS (Styling Mobile) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+
+  <!-- 2. Library Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200/80 p-6 space-y-6">
+    
+    <!-- Title Header -->
+    <div id="headerTitle" class="text-center space-y-1">
+      <div class="inline-flex p-3 bg-indigo-50 text-indigo-600 rounded-2xl mb-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <h1 class="text-xl font-bold text-slate-900">Presensi Ekstra Coding</h1>
+      <p class="text-xs text-slate-500">Silakan isi data kehadiran Anda dengan benar</p>
+    </div>
+
+    <!-- Tampilan Terima Kasih (Awalnya tersembunyi) -->
+    <div id="pesanSukses" class="hidden text-center space-y-4 py-4">
+      <div class="inline-flex p-4 bg-emerald-100 text-emerald-600 rounded-full animate-bounce">
+        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+      </div>
+      
+      <div class="space-y-2">
+        <h2 class="text-2xl font-bold text-slate-900">Terima Kasih!</h2>
+        <p class="text-base font-semibold text-indigo-600">Terima kasih telah hadir dalam sesi ekstra coding hari ini.</p>
+        <p class="text-sm text-slate-500 italic">"Tetap semangat menuju masa depan! 🚀"</p>
+      </div>
+
+      <div class="pt-4 border-t border-slate-100">
+        <span class="inline-block bg-emerald-50 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-emerald-200">
+          ✓ Kehadiran Berhasil Dicatat
+        </span>
+      </div>
+    </div>
+
+    <!-- Alert Notifikasi Gagal -->
+    <div id="pesanGagal" class="hidden bg-rose-50 border border-rose-200 text-rose-800 text-sm p-4 rounded-xl flex items-center gap-3">
+      <svg class="w-5 h-5 text-rose-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>
+      <div>Sesi presensi <strong>tidak valid</strong> atau telah ditutup.</div>
+    </div>
+
+    <!-- Form Isian Siswa -->
+    <form id="formPresensi" class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nama Lengkap</label>
+        <input type="text" id="nama" placeholder="Contoh: Ahmad Rizky" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Kelas</label>
+        <select id="kelas" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white transition-all">
+          <option value="">-- Pilih Kelas --</option>
+          <!-- Kelas 7 -->
+          <option value="Kelas 7A">Kelas 7A</option>
+          <option value="Kelas 7B">Kelas 7B</option>
+          <option value="Kelas 7C">Kelas 7C</option>
+          <option value="Kelas 7D">Kelas 7D</option>
+          <option value="Kelas 7E">Kelas 7E</option>
+          <option value="Kelas 7F">Kelas 7F</option>
+          <!-- Kelas 8 -->
+          <option value="Kelas 8A">Kelas 8A</option>
+          <option value="Kelas 8B">Kelas 8B</option>
+          <option value="Kelas 8C">Kelas 8C</option>
+          <option value="Kelas 8D">Kelas 8D</option>
+          <option value="Kelas 8E">Kelas 8E</option>
+          <option value="Kelas 8F">Kelas 8F</option>
+          <option value="Kelas 8G">Kelas 8G</option>
+          <!-- Kelas 9 -->
+          <option value="Kelas 9A">Kelas 9A</option>
+          <option value="Kelas 9B">Kelas 9B</option>
+          <option value="Kelas 9C">Kelas 9C</option>
+          <option value="Kelas 9D">Kelas 9D</option>
+          <option value="Kelas 9E">Kelas 9E</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nomor Absen</label>
+        <input type="number" id="noAbsen" placeholder="Masukkan angka nomor absen" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all">
+      </div>
+
+      <button type="submit" id="btnSubmit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-semibold rounded-xl shadow-md transition-all duration-150">
+        Kirim Presensi
+      </button>
+    </form>
+
+  </div>
+
+  <script>
+    // Konfigurasi Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBc3HdLkjHNW5ugDVNtFJktXteK6fCYCGE",
+      authDomain: "presensi-coding-7f2bd.firebaseapp.com",
+      projectId: "presensi-coding-7f2bd",
+      storageBucket: "presensi-coding-7f2bd.firebasestorage.app",
+      messagingSenderId: "559325095003",
+      appId: "1:559325095003:web:f0edfe9d59bcd9baa50b7e"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session');
+
+    document.getElementById("formPresensi").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const btn = document.getElementById("btnSubmit");
+      btn.disabled = true;
+      btn.innerText = "Mengirim...";
+
+      if (!sessionId) {
+        document.getElementById("pesanGagal").classList.remove("hidden");
+        btn.disabled = false;
+        btn.innerText = "Kirim Presensi";
+        return;
+      }
+
+      db.collection("sistem").doc("sesiAktif").get().then((doc) => {
+        if (doc.exists && doc.data().sessionId === sessionId) {
+          
+          db.collection("presensi").add({
+            sessionId: sessionId,
+            nama: document.getElementById("nama").value,
+            kelas: document.getElementById("kelas").value,
+            noAbsen: document.getElementById("noAbsen").value,
+            waktu: firebase.firestore.FieldValue.serverTimestamp()
+          }).then(() => {
+            // Sembunyikan Header dan Form
+            document.getElementById("headerTitle").classList.add("hidden");
+            document.getElementById("formPresensi").classList.add("hidden");
+            document.getElementById("pesanGagal").classList.add("hidden");
+
+            // Tampilkan Pesan Terima Kasih
+            document.getElementById("pesanSukses").classList.remove("hidden");
+          });
+
+        } else {
+          document.getElementById("pesanGagal").classList.remove("hidden");
+          document.getElementById("pesanSukses").classList.add("hidden");
+          btn.disabled = false;
+          btn.innerText = "Kirim Presensi";
+        }
+      });
+    });
+  </script>
+</body>
+</html>
