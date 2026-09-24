@@ -43,6 +43,30 @@
       </div>
     </div>
 
+    <!-- Filter & Statistik Bar -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+      <!-- Pemilih Tanggal -->
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <label for="filterTanggal" class="text-xs font-semibold text-slate-600 whitespace-nowrap">Filter Tanggal:</label>
+        <input type="date" id="filterTanggal" class="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-2 px-3">
+        <button onclick="resetFilterTanggal()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs rounded-xl transition-all">
+          Semua Tanggal
+        </button>
+      </div>
+
+      <!-- Ringkasan Jumlah Siswa -->
+      <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+        <div class="bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-xl text-center">
+          <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-500 block">Tampil (Filtered)</span>
+          <span id="jumlahSiswaFiltered" class="text-base font-bold text-indigo-700">0 Siswa</span>
+        </div>
+        <div class="bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl text-center">
+          <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">Total Seluruh</span>
+          <span id="jumlahSiswaTotal" class="text-base font-bold text-slate-700">0 Siswa</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Layout Utama: QR Code & Tabel Data -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
@@ -74,12 +98,7 @@
       <!-- Tabel Daftar Hadir Siswa -->
       <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 flex flex-col">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <h2 class="text-lg font-bold text-slate-900">Daftar Kehadiran Siswa</h2>
-            <span id="jumlahSiswa" class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-3 py-1 rounded-full border border-indigo-100">
-              Total: 0 Siswa
-            </span>
-          </div>
+          <h2 class="text-lg font-bold text-slate-900">Daftar Kehadiran Siswa</h2>
 
           <!-- Tombol Ekspor Excel -->
           <button onclick="eksporKeExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-medium text-xs rounded-xl shadow transition-all duration-150 flex items-center justify-center gap-2">
@@ -121,8 +140,6 @@
   <!-- Modal Pop-up QR Code Ukuran Besar -->
   <div id="modalQR" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl relative border border-slate-100">
-      
-      <!-- Tombol Close Modal -->
       <button onclick="tutupModalQR()" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-all">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -134,7 +151,6 @@
         <p class="text-xs text-slate-500 mt-1">Arahkan kamera HP Anda ke QR Code di bawah ini</p>
       </div>
 
-      <!-- Wadah QR Code Besar -->
       <div id="qrcodeBig" class="p-4 bg-white border-2 border-indigo-100 rounded-2xl shadow-inner inline-block mx-auto"></div>
 
       <div class="pt-2">
@@ -160,10 +176,22 @@
     const db = firebase.firestore();
 
     let qrCodeObj = null;
-    let qrCodeBigObj = null;
     let currentLinkSiswa = "";
     let unsubscribePresensi = null;
-    let dataPresensiSiswa = [];
+    let dataMasterPresensi = [];
+    let dataFilteredExcel = [];
+
+    // Set Default Tanggal Input ke Hari Ini
+    const todayStr = new Date().toISOString().split('T')[0];
+    document.getElementById("filterTanggal").value = todayStr;
+
+    // Listener Event saat Tanggal Diubah
+    document.getElementById("filterTanggal").addEventListener("change", renderTabelPresensi);
+
+    function resetFilterTanggal() {
+      document.getElementById("filterTanggal").value = "";
+      renderTabelPresensi();
+    }
 
     // Fungsi Membuat / Membuka Sesi Baru
     document.getElementById("btnBukaSesi").addEventListener("click", function() {
@@ -174,7 +202,7 @@
         createdTime: firebase.firestore.FieldValue.serverTimestamp()
       }).then(() => {
         tampilkanQR(idSesiBaru);
-        muatDataPresensi(idSesiBaru);
+        muatDataPresensi();
       });
     });
 
@@ -204,18 +232,16 @@
       if (doc.exists) {
         const activeSessionId = doc.data().sessionId;
         tampilkanQR(activeSessionId);
-        muatDataPresensi(activeSessionId);
       }
+      muatDataPresensi();
     });
 
-    // Fungsi Pop-up Perbesar QR Code
+    // Modal QR Zoom
     function bukaModalQR() {
       if (!currentLinkSiswa) return;
-
       const containerBig = document.getElementById("qrcodeBig");
       containerBig.innerHTML = "";
-
-      qrCodeBigObj = new QRCode(containerBig, {
+      new QRCode(containerBig, {
         text: currentLinkSiswa,
         width: 300,
         height: 300,
@@ -223,7 +249,6 @@
         colorLight : "#ffffff",
         correctLevel : QRCode.CorrectLevel.H
       });
-
       document.getElementById("modalQR").classList.remove("hidden");
     }
 
@@ -231,70 +256,105 @@
       document.getElementById("modalQR").classList.add("hidden");
     }
 
-    // Memuat Data Presensi Realtime dari Firestore
-    function muatDataPresensi(sessionId) {
+    // Memuat Seluruh Data Presensi Realtime dari Firestore
+    function muatDataPresensi() {
       if (unsubscribePresensi) unsubscribePresensi();
 
       unsubscribePresensi = db.collection("presensi")
-        .where("sessionId", "==", sessionId)
         .onSnapshot((snapshot) => {
-          const tbody = document.getElementById("tabelPresensi");
-          tbody.innerHTML = "";
-          dataPresensiSiswa = [];
-
-          document.getElementById("jumlahSiswa").innerText = `Total: ${snapshot.docs.length} Siswa`;
-
-          if (snapshot.empty) {
-            tbody.innerHTML = `
-              <tr>
-                <td colspan="6" class="text-center py-8 text-slate-400 text-xs">
-                  Belum ada data presensi untuk sesi ini.
-                </td>
-              </tr>
-            `;
-            return;
-          }
-
-          let no = 1;
+          dataMasterPresensi = [];
           snapshot.docs.forEach((doc) => {
             const data = doc.data();
-            const docId = doc.id;
-            
-            // Format Waktu
-            let waktuFormat = "-";
-            if (data.waktu) {
-              const date = data.waktu.toDate();
-              waktuFormat = date.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }) + " WIB";
-            }
-
-            // Simpan Data untuk Ekspor Excel
-            dataPresensiSiswa.push({
-              "No": no,
-              "Waktu Presensi": waktuFormat,
-              "Nama Siswa": data.nama,
-              "Kelas": data.kelas,
-              "No. Absen": data.noAbsen
+            dataMasterPresensi.push({
+              docId: doc.id,
+              ...data
             });
-
-            const tr = document.createElement("tr");
-            tr.className = "hover:bg-slate-50 transition-colors";
-            tr.innerHTML = `
-              <td class="py-3 px-4 font-medium text-slate-600">${no++}</td>
-              <td class="py-3 px-4 font-semibold text-slate-900">${data.nama}</td>
-              <td class="py-3 px-4 text-slate-600">${data.kelas}</td>
-              <td class="py-3 px-4 text-slate-600">${data.noAbsen}</td>
-              <td class="py-3 px-4 text-slate-500 text-xs">${waktuFormat}</td>
-              <td class="py-3 px-4 text-center">
-                <button onclick="hapusPresensi('${docId}', '${data.nama}')" class="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-all" title="Hapus Data">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                  </svg>
-                </button>
-              </td>
-            `;
-            tbody.appendChild(tr);
           });
+
+          renderTabelPresensi();
         });
+    }
+
+    // Render Tabel & Terapkan Filter Tanggal
+    function renderTabelPresensi() {
+      const tbody = document.getElementById("tabelPresensi");
+      const selectedDate = document.getElementById("filterTanggal").value; // Format: YYYY-MM-DD
+      
+      tbody.innerHTML = "";
+      dataFilteredExcel = [];
+
+      let totalSiswa = dataMasterPresensi.length;
+      let countFiltered = 0;
+      let no = 1;
+
+      // Urutkan data dari yang terbaru
+      const dataSorted = [...dataMasterPresensi].sort((a, b) => {
+        const tA = a.waktu ? a.waktu.toDate().getTime() : 0;
+        const tB = b.waktu ? b.waktu.toDate().getTime() : 0;
+        return tB - tA;
+      });
+
+      dataSorted.forEach((item) => {
+        let dateObj = item.waktu ? item.waktu.toDate() : null;
+        let tglFormatted = "";
+        let waktuFormatted = "-";
+
+        if (dateObj) {
+          // Format YYYY-MM-DD untuk pencocokan filter
+          const year = dateObj.getFullYear();
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+          const day = String(dateObj.getDate()).padStart(2, '0');
+          tglFormatted = `${year}-${month}-${day}`;
+
+          waktuFormatted = `${tglFormatted} ${dateObj.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })} WIB`;
+        }
+
+        // Cek Filter Tanggal
+        if (!selectedDate || selectedDate === tglFormatted) {
+          countFiltered++;
+
+          // Simpan Data untuk Ekspor Excel
+          dataFilteredExcel.push({
+            "No": no,
+            "Tanggal & Waktu": waktuFormatted,
+            "Nama Siswa": item.nama,
+            "Kelas": item.kelas,
+            "No. Absen": item.noAbsen
+          });
+
+          const tr = document.createElement("tr");
+          tr.className = "hover:bg-slate-50 transition-colors";
+          tr.innerHTML = `
+            <td class="py-3 px-4 font-medium text-slate-600">${no++}</td>
+            <td class="py-3 px-4 font-semibold text-slate-900">${item.nama}</td>
+            <td class="py-3 px-4 text-slate-600">${item.kelas}</td>
+            <td class="py-3 px-4 text-slate-600">${item.noAbsen}</td>
+            <td class="py-3 px-4 text-slate-500 text-xs">${waktuFormatted}</td>
+            <td class="py-3 px-4 text-center">
+              <button onclick="hapusPresensi('${item.docId}', '${item.nama}')" class="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-all" title="Hapus Data">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        }
+      });
+
+      // Update Angka Statistik
+      document.getElementById("jumlahSiswaFiltered").innerText = `${countFiltered} Siswa`;
+      document.getElementById("jumlahSiswaTotal").innerText = `${totalSiswa} Siswa`;
+
+      if (countFiltered === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-8 text-slate-400 text-xs">
+              Tidak ada data presensi pada tanggal/kriteria ini.
+            </td>
+          </tr>
+        `;
+      }
     }
 
     // Fungsi Hapus Data Presensi
@@ -310,17 +370,17 @@
 
     // Fungsi Ekspor Data ke File Excel
     function eksporKeExcel() {
-      if (dataPresensiSiswa.length === 0) {
-        alert("Belum ada data presensi yang bisa diekspor!");
+      if (dataFilteredExcel.length === 0) {
+        alert("Tidak ada data presensi yang sesuai untuk diekspor!");
         return;
       }
 
-      const idSesi = document.getElementById("textSessionId").innerText || "Sesi";
-      const worksheet = XLSX.utils.json_to_sheet(dataPresensiSiswa);
+      const selectedDate = document.getElementById("filterTanggal").value || "Semua_Tanggal";
+      const worksheet = XLSX.utils.json_to_sheet(dataFilteredExcel);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Presensi");
 
-      XLSX.writeFile(workbook, `Data_Presensi_${idSesi}.xlsx`);
+      XLSX.writeFile(workbook, `Data_Presensi_${selectedDate}.xlsx`);
     }
   </script>
 </body>
